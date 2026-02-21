@@ -26,19 +26,38 @@ app.use(cors({}));
 app.use(router);
 
 io.on("connection", (socket) => {
-  console.log("New client connected");
-  console.log("socket.id:", socket.id);
-  console.log("handshake query:", socket.handshake.query);
-  console.log("handshake auth:", socket.handshake.auth);
+  console.log("New client connected:", socket.id);
 
-  // If client sends custom "join-room" data, log it
-  socket.on("join-room", ({ roomId, userName }) => {
+  socket.on("join-room", (data = {}, ack) => {
+    const roomId = data.roomId || data.roomName;
+    const userName = data.userName || "Anonymous";
+
+    if (!roomId) {
+      if (ack) ack({ ok: false, error: "roomId is required" });
+      return;
+    }
+
     socket.join(roomId);
     console.log(`${userName} joined ${roomId}`);
 
+    if (ack) ack({ ok: true, roomId });
+
     socket.emit("joined-room", { roomId });
     socket.to(roomId).emit("user-joined", { userName, socketId: socket.id });
-    console.log("join-room data:", data);
+  });
+
+  socket.on("send_ping", ({ roomId, roomName, message } = {}) => {
+    const targetRoom = roomId || roomName;
+    if (!targetRoom) {
+      return;
+    }
+
+    socket.to(targetRoom).emit("receive_ping", {
+      message: message || "ping",
+      from: socket.id,
+      at: Date.now(),
+      roomId: targetRoom,
+    });
   });
 
   socket.on("disconnect", (reason) => {
@@ -46,7 +65,6 @@ io.on("connection", (socket) => {
   });
 });
 
-//common error handling middleware
 app.use((req, res) => {
   return res.status(500).json({
     status: false,
@@ -56,6 +74,6 @@ app.use((req, res) => {
 
 httpServer.listen(PORT, async () => {
   await db.connect();
-  console.log(`database connected`);
+  console.log("database connected");
   console.log(`server started on port ${PORT}`);
 });
