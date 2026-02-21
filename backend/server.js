@@ -4,14 +4,10 @@ const helmet = require("helmet");
 const cors = require("cors");
 const router = require("./routes/routes");
 const {
-  debounceSave,
-  getRoomData,
-  flushRoomSave,
-} = require("./helper/helperFuncs");
-const {
   routeNotFound,
   errorHandler,
 } = require("./middleware/commonMiddlewares");
+const { createRoomHandlers } = require("./sockets/roomHandlers");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
@@ -37,60 +33,17 @@ app.use(router);
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
-  socket.on("join-room", async (data = {}, ack) => {
-    try {
-      const rawRoomId = data.roomId;
-      const userName = data.userName || "Anonymous";
-      const roomId = String(rawRoomId || "").replace(/^\//, "");
+  const {
+    joinRoomHandler,
+    sendDataHandler,
+    disconnectingHandler,
+    disconnectHandler,
+  } = createRoomHandlers(socket);
 
-      if (!roomId) {
-        if (ack) ack({ status: false, error: "roomId is required" });
-        return;
-      }
-
-      socket.join(roomId);
-      console.log(`${userName} joined ${roomId}`);
-
-      const roomData = await getRoomData(roomId);
-      if (ack) ack({ status: true, roomId, roomData });
-
-      socket.emit("joined-room", { roomId });
-      socket.to(roomId).emit("user-joined", { userName, socketId: socket.id });
-    } catch (error) {
-      console.error("join-room failed:", error);
-      if (ack) ack({ status: false, error: "failed to join room" });
-    }
-  });
-
-  socket.on("send-data", ({ roomId, message } = {}) => {
-    const normalizedRoomId = String(roomId || "").replace(/^\//, "");
-    if (!normalizedRoomId) {
-      return;
-    }
-
-    debounceSave(normalizedRoomId, message);
-
-    socket.to(normalizedRoomId).emit("receive-data", {
-      message: message || "",
-      from: socket.id,
-      at: Date.now(),
-      roomId: normalizedRoomId,
-    });
-  });
-
-  socket.on("disconnecting", async () => {
-    const roomIds = Array.from(socket.rooms).filter((id) => id !== socket.id);
-
-    if (!roomIds.length) {
-      return;
-    }
-
-    await Promise.allSettled(roomIds.map((roomId) => flushRoomSave(roomId)));
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log(`Client disconnected: ${socket.id}, reason: ${reason}`);
-  });
+  socket.on("join-room", joinRoomHandler);
+  socket.on("send-data", sendDataHandler);
+  socket.on("disconnecting", disconnectingHandler);
+  socket.on("disconnect", disconnectHandler);
 });
 
 app.use(routeNotFound);
