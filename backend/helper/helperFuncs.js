@@ -3,6 +3,18 @@ const db = require("../db/db");
 const DEBOUNCE_MS = 500;
 const roomTimers = new Map();
 
+const getRoomData = async (roomId) => {
+  const roomData = await db.query(
+    `SELECT data FROM workspace WHERE room_id = $1`,
+    [roomId],
+  );
+
+  if (roomData.rowCount) {
+    return roomData.rows[0].data;
+  }
+  return "";
+};
+
 const saveWorkspace = async (roomId, message) => {
   await db.query(
     `INSERT INTO workspace (room_id, data, updated_at)
@@ -38,4 +50,4 @@ const debounceSave = (roomId, message) => {
   roomTimers.set(roomId, timer);
 };
 
-module.exports = debounceSave;
+module.exports = { debounceSave, getRoomData };

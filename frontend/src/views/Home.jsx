@@ -15,17 +15,20 @@ const Home = () => {
     return result.data;
   };
 
+  const roomId = currentPath.replace(/^\//, "");
+
   const handleTextChange = (event) => {
+    const value = event.target.value;
+    setTextArea(value);
+
     const socket = socketRef.current;
-    if (!socket || !socket.connected || currentPath === "/") {
+    if (!socket || !socket.connected || !roomId) {
       return;
     }
 
-    setTextArea(event.target.value);
-
     socket.emit("send-data", {
-      roomId: currentPath,
-      message: event.target.value,
+      roomId,
+      message: value,
     });
   };
 
@@ -47,7 +50,7 @@ const Home = () => {
   }, [currentPath, navigate]);
 
   useEffect(() => {
-    if (currentPath === "/") {
+    if (!roomId) {
       return;
     }
 
@@ -56,13 +59,12 @@ const Home = () => {
 
     const onConnect = () => {
       console.log("connected:", socket.id);
-      socket.emit(
-        "join-room",
-        { roomId: currentPath, userName: socket.id },
-        (ack) => {
-          console.log("join ack", ack);
-        },
-      );
+      socket.emit("join-room", { roomId, userName: socket.id }, (ack) => {
+        if (ack?.status) {
+          setTextArea(ack.roomData ?? "");
+        }
+        console.log("join ack", ack);
+      });
     };
 
     const onReceiveData = (data) => {
@@ -84,13 +86,13 @@ const Home = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [currentPath]);
+  }, [roomId]);
 
   return (
     <div>
       <textarea
         rows="3"
-        columns="4"
+        cols="4"
         value={textArea}
         onChange={handleTextChange}
       />

@@ -3,7 +3,7 @@ const db = require("./db/db");
 const helmet = require("helmet");
 const cors = require("cors");
 const router = require("./routes/routes");
-const debounceSave = require("./helper/helperFuncs");
+const { debounceSave, getRoomData } = require("./helper/helperFuncs");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
@@ -29,36 +29,44 @@ app.use(router);
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
-  socket.on("join-room", (data = {}, ack) => {
-    const roomId = data.roomId;
-    const userName = data.userName || "Anonymous";
+  socket.on("join-room", async (data = {}, ack) => {
+    try {
+      const rawRoomId = data.roomId;
+      const userName = data.userName || "Anonymous";
+      const roomId = String(rawRoomId || "").replace(/^\//, "");
 
-    if (!roomId) {
-      if (ack) ack({ status: false, error: "roomId is required" });
-      return;
+      if (!roomId) {
+        if (ack) ack({ status: false, error: "roomId is required" });
+        return;
+      }
+
+      socket.join(roomId);
+      console.log(`${userName} joined ${roomId}`);
+
+      const roomData = await getRoomData(roomId);
+      if (ack) ack({ status: true, roomId, roomData });
+
+      socket.emit("joined-room", { roomId });
+      socket.to(roomId).emit("user-joined", { userName, socketId: socket.id });
+    } catch (error) {
+      console.error("join-room failed:", error);
+      if (ack) ack({ status: false, error: "failed to join room" });
     }
-
-    socket.join(roomId);
-    console.log(`${userName} joined ${roomId}`);
-
-    if (ack) ack({ status: true, roomId });
-
-    socket.emit("joined-room", { roomId });
-    socket.to(roomId).emit("user-joined", { userName, socketId: socket.id });
   });
 
   socket.on("send-data", ({ roomId, message } = {}) => {
-    if (!roomId) {
+    const normalizedRoomId = String(roomId || "").replace(/^\//, "");
+    if (!normalizedRoomId) {
       return;
     }
 
-    debounceSave(roomId, message);
+    debounceSave(normalizedRoomId, message);
 
-    socket.to(roomId).emit("receive-data", {
+    socket.to(normalizedRoomId).emit("receive-data", {
       message: message || "",
       from: socket.id,
       at: Date.now(),
-      roomId: roomId,
+      roomId: normalizedRoomId,
     });
   });
 
