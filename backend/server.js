@@ -3,7 +3,11 @@ const db = require("./db/db");
 const helmet = require("helmet");
 const cors = require("cors");
 const router = require("./routes/routes");
-const { debounceSave, getRoomData } = require("./helper/helperFuncs");
+const {
+  debounceSave,
+  getRoomData,
+  flushRoomSave,
+} = require("./helper/helperFuncs");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
@@ -68,6 +72,16 @@ io.on("connection", (socket) => {
       at: Date.now(),
       roomId: normalizedRoomId,
     });
+  });
+
+  socket.on("disconnecting", async () => {
+    const roomIds = Array.from(socket.rooms).filter((id) => id !== socket.id);
+
+    if (!roomIds.length) {
+      return;
+    }
+
+    await Promise.allSettled(roomIds.map((roomId) => flushRoomSave(roomId)));
   });
 
   socket.on("disconnect", (reason) => {
