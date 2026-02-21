@@ -29,34 +29,33 @@ io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
   socket.on("join-room", (data = {}, ack) => {
-    const roomId = data.roomId || data.roomName;
+    const roomId = data.roomId;
     const userName = data.userName || "Anonymous";
 
     if (!roomId) {
-      if (ack) ack({ ok: false, error: "roomId is required" });
+      if (ack) ack({ status: false, error: "roomId is required" });
       return;
     }
 
     socket.join(roomId);
     console.log(`${userName} joined ${roomId}`);
 
-    if (ack) ack({ ok: true, roomId });
+    if (ack) ack({ status: true, roomId });
 
     socket.emit("joined-room", { roomId });
     socket.to(roomId).emit("user-joined", { userName, socketId: socket.id });
   });
 
-  socket.on("send_ping", ({ roomId, roomName, message } = {}) => {
-    const targetRoom = roomId || roomName;
-    if (!targetRoom) {
+  socket.on("send-data", ({ roomId, message } = {}) => {
+    if (!roomId) {
       return;
     }
 
-    socket.to(targetRoom).emit("receive_ping", {
-      message: message || "ping",
+    socket.to(roomId).emit("receive-data", {
+      message: message || "",
       from: socket.id,
       at: Date.now(),
-      roomId: targetRoom,
+      roomId: roomId,
     });
   });
 
@@ -66,9 +65,22 @@ io.on("connection", (socket) => {
 });
 
 app.use((req, res) => {
-  return res.status(500).json({
+  return res.status(404).json({
     status: false,
-    message: "internal server error",
+    message: "route not found",
+  });
+});
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  return res.status(err.status || 500).json({
+    status: false,
+    message: err.message || "internal server error",
   });
 });
 

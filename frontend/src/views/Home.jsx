@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "../api/AxiosPrivate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
@@ -8,19 +8,25 @@ const Home = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const socketRef = useRef(null);
+  const [textArea, setTextArea] = useState("");
 
   const getRoomId = async () => {
     const result = await api.get("/generateRoom");
     return result.data;
   };
 
-  const handleSendMsg = () => {
+  const handleTextChange = (event) => {
     const socket = socketRef.current;
     if (!socket || !socket.connected || currentPath === "/") {
       return;
     }
 
-    socket.emit("send_ping", { roomId: currentPath, message: "ping" });
+    setTextArea(event.target.value);
+
+    socket.emit("send-data", {
+      roomId: currentPath,
+      message: event.target.value,
+    });
   };
 
   useEffect(() => {
@@ -49,18 +55,18 @@ const Home = () => {
     socketRef.current = socket;
 
     const onConnect = () => {
-      console.log("Connected:", socket.id);
+      console.log("connected:", socket.id);
       socket.emit(
         "join-room",
-        { roomId: currentPath, userName: "Shubham" },
+        { roomId: currentPath, userName: socket.id },
         (ack) => {
           console.log("join ack", ack);
-        }
+        },
       );
     };
 
-    const onReceivePing = (data) => {
-      console.log("Ping received", data);
+    const onReceiveData = (data) => {
+      setTextArea(data.message);
     };
 
     const onDisconnect = (reason) => {
@@ -68,12 +74,12 @@ const Home = () => {
     };
 
     socket.on("connect", onConnect);
-    socket.on("receive_ping", onReceivePing);
+    socket.on("receive-data", onReceiveData);
     socket.on("disconnect", onDisconnect);
 
     return () => {
       socket.off("connect", onConnect);
-      socket.off("receive_ping", onReceivePing);
+      socket.off("receive-data", onReceiveData);
       socket.off("disconnect", onDisconnect);
       socket.disconnect();
       socketRef.current = null;
@@ -82,7 +88,12 @@ const Home = () => {
 
   return (
     <div>
-      <button onClick={handleSendMsg}>PING</button>
+      <textarea
+        rows="3"
+        columns="4"
+        value={textArea}
+        onChange={handleTextChange}
+      />
     </div>
   );
 };
