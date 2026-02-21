@@ -3,6 +3,7 @@ const db = require("./db/db");
 const helmet = require("helmet");
 const cors = require("cors");
 const router = require("./routes/routes");
+const debounceSave = require("./helper/helperFuncs");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
@@ -51,6 +52,8 @@ io.on("connection", (socket) => {
       return;
     }
 
+    debounceSave(roomId, message);
+
     socket.to(roomId).emit("receive-data", {
       message: message || "",
       from: socket.id,
@@ -85,7 +88,12 @@ app.use((err, req, res, next) => {
 });
 
 httpServer.listen(PORT, async () => {
-  await db.connect();
-  console.log("database connected");
-  console.log(`server started on port ${PORT}`);
+  try {
+    await db.query("SELECT 1");
+    console.log("database connected");
+    console.log(`server started on port ${PORT}`);
+  } catch (error) {
+    console.error("Failed to connect database:", error);
+    process.exit(1);
+  }
 });
