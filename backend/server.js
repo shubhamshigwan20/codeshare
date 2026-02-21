@@ -8,6 +8,10 @@ const {
   getRoomData,
   flushRoomSave,
 } = require("./helper/helperFuncs");
+const {
+  routeNotFound,
+  errorHandler,
+} = require("./middleware/commonMiddlewares");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
@@ -89,25 +93,9 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use((req, res) => {
-  return res.status(404).json({
-    status: false,
-    message: "route not found",
-  });
-});
+app.use(routeNotFound);
 
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
-
-  return res.status(err.status || 500).json({
-    status: false,
-    message: err.message || "internal server error",
-  });
-});
+app.use(errorHandler);
 
 httpServer.listen(PORT, async () => {
   try {
