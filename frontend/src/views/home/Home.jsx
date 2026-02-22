@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import api from "../api/AxiosPrivate";
+import api from "../../api/AxiosPrivate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
+import Header from "./components/header/Header";
+import Editor from "./components/editor/Editor";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Home = () => {
   const navigate = useNavigate();
@@ -17,8 +21,7 @@ const Home = () => {
 
   const roomId = currentPath.replace(/^\//, "");
 
-  const handleTextChange = (event) => {
-    const value = event.target.value;
+  const handleTextChange = (value) => {
     setTextArea(value);
 
     const socket = socketRef.current;
@@ -54,7 +57,7 @@ const Home = () => {
       return;
     }
 
-    const socket = io("http://localhost:80", { transports: ["websocket"] });
+    const socket = io(backendUrl, { transports: ["websocket"] });
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -90,11 +93,11 @@ const Home = () => {
 
   return (
     <div>
-      <textarea
-        rows="3"
-        cols="4"
-        value={textArea}
-        onChange={handleTextChange}
+      <Header />
+      <Editor
+        textArea={textArea}
+        setTextArea={setTextArea}
+        handleTextChange={handleTextChange}
       />
     </div>
   );
