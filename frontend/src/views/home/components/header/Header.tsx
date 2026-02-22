@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 const Header = () => {
   return (
-    <div className="flex bg-(--secondary) w-screen h-15 shrink-0">
+    <div className="flex bg-(--secondary) w-screen h-[8vh] shrink-0">
       <div className="w-9/10 flex justify-start items-center">
         <p className="text-2xl text-(--primary) mx-5 font-semibold">
           Codeshare
