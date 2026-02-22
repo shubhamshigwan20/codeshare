@@ -1,4 +1,9 @@
-const { z } = require("zod");
+const healthCheck = (req, res) => {
+  return res.status(200).json({
+    status: true,
+    message: "backend is up",
+  });
+};
 
 const generateRoom = (req, res) => {
   const { query } = req;
@@ -25,4 +30,4 @@ const generateRoom = (req, res) => {
   });
 };
 
-module.exports = { generateRoom };
+module.exports = { generateRoom, healthCheck };

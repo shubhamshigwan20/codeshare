@@ -10,6 +10,7 @@ import Header from "./components/header/Header";
 import Editor from "./components/editor/Editor";
 import Footer from "./components/footer/Footer";
 import StatusBar from "./components/status-bar/StatusBar";
+import Loading from "../common/Loading";
 
 type GenerateRoomResponse = {
   status: boolean;
@@ -42,6 +43,7 @@ const Home = () => {
     [location.pathname],
   );
   const [connectionStatus, setConnectionStatus] = useState(false);
+  const [openDialog, setOpenDialog] = useState(true);
 
   const getRoomId = async (): Promise<GenerateRoomResponse> => {
     const result = await api.get<GenerateRoomResponse>("/generateRoom");
@@ -124,8 +126,47 @@ const Home = () => {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    if (!openDialog) {
+      return;
+    }
+
+    let isMounted = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const backendStatusCheck = async () => {
+      try {
+        await api.get("/health");
+
+        if (!isMounted) {
+          return;
+        }
+
+        setOpenDialog(false);
+
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      } catch {
+        // Keep dialog open while backend is unavailable.
+      }
+    };
+
+    void backendStatusCheck();
+    timer = setInterval(backendStatusCheck, 10000);
+
+    return () => {
+      isMounted = false;
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [openDialog]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      <Loading openDialog={openDialog} />
       <Header />
       <StatusBar status={connectionStatus} />
       <Editor
