@@ -1,20 +1,11 @@
-const express = require("express");
 const db = require("./db/db");
-const helmet = require("helmet");
-const cors = require("cors");
-const router = require("./routes/routes");
-const {
-  routeNotFound,
-  errorHandler,
-} = require("./middleware/commonMiddlewares");
+const app = require("./app");
 const { createRoomHandlers } = require("./sockets/roomHandlers");
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 80;
-
-const app = express();
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -23,12 +14,6 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
-
-app.use(helmet());
-app.use(express.json());
-app.use(cors({}));
-
-app.use(router);
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
@@ -45,10 +30,6 @@ io.on("connection", (socket) => {
   socket.on("disconnecting", disconnectingHandler);
   socket.on("disconnect", disconnectHandler);
 });
-
-app.use(routeNotFound);
-
-app.use(errorHandler);
 
 httpServer.listen(PORT, async () => {
   try {
