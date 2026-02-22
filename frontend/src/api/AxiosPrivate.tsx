@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosHeaders } from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -8,12 +8,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (!config.headers?.["Content-Type"]) {
-      config.headers = {
-        ...config.headers,
-        "Content-Type": "application/json",
-      };
+    const headers = AxiosHeaders.from(config.headers);
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
     }
+    config.headers = headers;
 
     return config;
   },
