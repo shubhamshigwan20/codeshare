@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import api from "../../api/AxiosPrivate";
+//importing libraries
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../api/AxiosPrivate";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
+
+//importing components
 import Header from "./components/header/Header";
 import Editor from "./components/editor/Editor";
 import Footer from "./components/footer/Footer";
@@ -31,10 +34,12 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
 const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
   const socketRef = useRef<Socket | null>(null);
   const [textArea, setTextArea] = useState("");
-  const roomId = useRef("");
+  const roomId = useMemo(
+    () => location.pathname.replace(/^\//, ""),
+    [location.pathname],
+  );
 
   const getRoomId = async (): Promise<GenerateRoomResponse> => {
     const result = await api.get<GenerateRoomResponse>("/generateRoom");
@@ -57,7 +62,7 @@ const Home = () => {
 
   useEffect(() => {
     const run = async () => {
-      if (currentPath !== "/") {
+      if (location.pathname !== "/") {
         return;
       }
 
@@ -68,10 +73,9 @@ const Home = () => {
         console.error("Failed to fetch room id:", error);
       }
     };
-    roomId.current = currentPath.replace(/^\//, "");
 
     run();
-  }, [currentPath, navigate]);
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     if (!roomId || !backendUrl) {
