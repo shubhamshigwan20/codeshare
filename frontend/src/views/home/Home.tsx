@@ -34,13 +34,12 @@ const Home = () => {
   const currentPath = location.pathname;
   const socketRef = useRef<Socket | null>(null);
   const [textArea, setTextArea] = useState("");
+  const roomId = useRef("");
 
   const getRoomId = async (): Promise<GenerateRoomResponse> => {
     const result = await api.get<GenerateRoomResponse>("/generateRoom");
     return result.data;
   };
-
-  const roomId = currentPath.replace(/^\//, "");
 
   const handleTextChange = (value: string) => {
     setTextArea(value);
@@ -69,6 +68,7 @@ const Home = () => {
         console.error("Failed to fetch room id:", error);
       }
     };
+    roomId.current = currentPath.replace(/^\//, "");
 
     run();
   }, [currentPath, navigate]);
