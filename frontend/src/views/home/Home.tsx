@@ -9,6 +9,7 @@ import type { Socket } from "socket.io-client";
 import Header from "./components/header/Header";
 import Editor from "./components/editor/Editor";
 import Footer from "./components/footer/Footer";
+import StatusBar from "./components/status-bar/StatusBar";
 
 type GenerateRoomResponse = {
   status: boolean;
@@ -40,6 +41,7 @@ const Home = () => {
     () => location.pathname.replace(/^\//, ""),
     [location.pathname],
   );
+  const [connectionStatus, setConnectionStatus] = useState(false);
 
   const getRoomId = async (): Promise<GenerateRoomResponse> => {
     const result = await api.get<GenerateRoomResponse>("/generateRoom");
@@ -86,6 +88,7 @@ const Home = () => {
     socketRef.current = socket;
 
     const onConnect = () => {
+      setConnectionStatus(true);
       console.log("connected:", socket.id);
       socket.emit(
         "join-room",
@@ -104,6 +107,7 @@ const Home = () => {
     };
 
     const onDisconnect = (reason: string) => {
+      setConnectionStatus(false);
       console.log("Disconnected:", reason);
     };
 
@@ -123,6 +127,7 @@ const Home = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header />
+      <StatusBar status={connectionStatus} />
       <Editor
         textArea={textArea}
         setTextArea={setTextArea}
