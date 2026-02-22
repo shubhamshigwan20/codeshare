@@ -11,13 +11,7 @@ Real-time collaborative code editor where multiple users can join the same room 
 
 ## Screenshots / Demo
 
-![Codeshare Demo](./docs/demo.gif)
-![Codeshare Editor](./docs/screenshot-home.png)
-
-If these files are missing, add them at:
-
-- `docs/demo.gif`
-- `docs/screenshot-home.png`
+https://docs.google.com/document/d/1TWZ1yHxPCNEOdqXcsJB0UDvIcrmYxOcqSTCKz87TgmM/edit?usp=sharing
 
 ## Tech Stack
 
