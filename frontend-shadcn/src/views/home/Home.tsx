@@ -1,27 +1,47 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../../api/AxiosPrivate";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import Header from "./components/header/Header";
 import Editor from "./components/editor/Editor";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+type GenerateRoomResponse = {
+  status: boolean;
+  url: string;
+};
+
+type JoinRoomAck = {
+  status: boolean;
+  roomId?: string;
+  roomData?: string;
+  error?: string;
+};
+
+type ReceiveDataPayload = {
+  message: string;
+  from: string;
+  at: number;
+  roomId: string;
+};
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL as string | undefined;
 
 const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
-  const socketRef = useRef(null);
+  const socketRef = useRef<Socket | null>(null);
   const [textArea, setTextArea] = useState("");
 
-  const getRoomId = async () => {
-    const result = await api.get("/generateRoom");
+  const getRoomId = async (): Promise<GenerateRoomResponse> => {
+    const result = await api.get<GenerateRoomResponse>("/generateRoom");
     return result.data;
   };
 
   const roomId = currentPath.replace(/^\//, "");
 
-  const handleTextChange = (value) => {
+  const handleTextChange = (value: string) => {
     setTextArea(value);
 
     const socket = socketRef.current;
@@ -53,7 +73,7 @@ const Home = () => {
   }, [currentPath, navigate]);
 
   useEffect(() => {
-    if (!roomId) {
+    if (!roomId || !backendUrl) {
       return;
     }
 
@@ -62,7 +82,7 @@ const Home = () => {
 
     const onConnect = () => {
       console.log("connected:", socket.id);
-      socket.emit("join-room", { roomId, userName: socket.id }, (ack) => {
+      socket.emit("join-room", { roomId, userName: socket.id }, (ack: JoinRoomAck) => {
         if (ack?.status) {
           setTextArea(ack.roomData ?? "");
         }
@@ -70,11 +90,11 @@ const Home = () => {
       });
     };
 
-    const onReceiveData = (data) => {
+    const onReceiveData = (data: ReceiveDataPayload) => {
       setTextArea(data.message);
     };
 
-    const onDisconnect = (reason) => {
+    const onDisconnect = (reason: string) => {
       console.log("Disconnected:", reason);
     };
 

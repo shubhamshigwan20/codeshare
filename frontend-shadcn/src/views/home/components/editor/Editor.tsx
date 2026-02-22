@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import * as monaco from "monaco-editor";
 
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
@@ -7,7 +8,11 @@ import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
-self.MonacoEnvironment = {
+type MonacoEnvironment = {
+  getWorker: (_: unknown, label: string) => Worker;
+};
+
+(self as typeof self & { MonacoEnvironment: MonacoEnvironment }).MonacoEnvironment = {
   getWorker(_, label) {
     if (label === "json") return new jsonWorker();
     if (label === "css" || label === "scss" || label === "less")
@@ -19,9 +24,15 @@ self.MonacoEnvironment = {
   },
 };
 
-const Editor = ({ textArea, setTextArea, handleTextChange }) => {
-  const containerRef = useRef(null);
-  const editorRef = useRef(null);
+type EditorProps = {
+  textArea: string;
+  setTextArea: Dispatch<SetStateAction<string>>;
+  handleTextChange: (value: string) => void;
+};
+
+const Editor = ({ textArea, setTextArea, handleTextChange }: EditorProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const syncingFromParentRef = useRef(false);
 
   useEffect(() => {
@@ -48,7 +59,7 @@ const Editor = ({ textArea, setTextArea, handleTextChange }) => {
 
     const disposeChange = editorRef.current.onDidChangeModelContent(() => {
       if (syncingFromParentRef.current) return;
-      const value = editorRef.current.getValue();
+      const value = editorRef.current?.getValue() ?? "";
       setTextArea(value); // local UI state
       handleTextChange(value); // socket emit + shared state logic
     });

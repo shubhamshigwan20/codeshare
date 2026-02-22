@@ -1,7 +1,5 @@
-import React from "react";
 import Home from "../views/home/Home";
 import Login from "../views/Login";
-import ProtectedRoutes from "./ProtectedRoutes";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 const AppRoutes = () => {
@@ -9,9 +7,7 @@ const AppRoutes = () => {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedRoutes />}>
-          <Route path="*" element={<Home />} />
-        </Route>
+        <Route path="*" element={<Home />} />
       </Routes>
     </Router>
   );
