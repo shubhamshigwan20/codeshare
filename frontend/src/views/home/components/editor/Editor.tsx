@@ -36,6 +36,11 @@ const Editor = ({ textArea, setTextArea, handleTextChange }: EditorProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const syncingFromParentRef = useRef(false);
+  const handleTextChangeRef = useRef(handleTextChange);
+
+  useEffect(() => {
+    handleTextChangeRef.current = handleTextChange;
+  }, [handleTextChange]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -63,7 +68,7 @@ const Editor = ({ textArea, setTextArea, handleTextChange }: EditorProps) => {
       if (syncingFromParentRef.current) return;
       const value = editorRef.current?.getValue() ?? "";
       setTextArea(value); // local UI state
-      handleTextChange(value); // socket emit + shared state logic
+      handleTextChangeRef.current(value); // always uses latest room-aware handler
     });
 
     return () => {
