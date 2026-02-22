@@ -31,3 +31,6 @@ dist-ssr
 
 /frontend-shadcn/node_modules
 /frontend-shadcn/.env
+
+/frontend-legacy/node_modules
+/frontend-legacy/.env
